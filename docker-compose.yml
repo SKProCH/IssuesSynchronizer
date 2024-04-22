@@ -1,0 +1,36 @@
+secrets:
+  GITHUB_WebHookSecret: "Paste here"
+  GITHUB_AppIdentifier: "Paste here"
+  GITHUB_PrivateKey: "Paste here"
+  GITHUB_AppName: "Paste here"
+  
+services:
+  IssuesSynchronizer:
+    image: issuessyncronizer
+    build:
+      context: .
+      dockerfile: IssuesSynchronizer/Dockerfile
+    environment:
+      ConnectionStrings__Main: "Server=postgres;Port=5432;Database=IssuesSynchronizer;User Id=postgres;Password=localpassword;"
+      GitHubApi__WebHookSecret: /run/secrets/GITHUB_WebHookSecret
+      GitHubApi__AppIdentifier: /run/secrets/GITHUB_AppIdentifier
+      GitHubApi__PrivateKey: /run/secrets/GITHUB_PrivateKey
+      GitHubApi__AppName: /run/secrets/GITHUB_AppName
+    ports:
+      - "8080:8080"
+    depends_on:
+      - "postgres"
+    networks:
+      - issuessynchronizer-network
+  
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_PASSWORD: localpassword
+    restart: always
+    networks:
+      - issuessynchronizer-network
+
+networks:
+  steammarketmatcher-network:
+    driver: bridge
