@@ -11,6 +11,10 @@
 
     <ItemGroup>
         <PackageReference Include="Microsoft.AspNetCore.OpenApi"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
         <PackageReference Include="Octokit.Bot"/>
         <PackageReference Include="Swashbuckle.AspNetCore"/>
     </ItemGroup>
@@ -19,6 +23,10 @@
         <Content Include="..\.dockerignore">
             <Link>.dockerignore</Link>
         </Content>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\IssuesSynchronizer.Postgres\IssuesSynchronizer.Postgres.csproj" />
     </ItemGroup>
 
 </Project>
