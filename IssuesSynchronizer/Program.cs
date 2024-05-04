@@ -1,12 +1,13 @@
 using Discord.WebSocket;
 using IssuesSynchronizer.Discord;
+using IssuesSynchronizer.GitHub;
 using IssuesSynchronizer.Postgres;
 using Microsoft.EntityFrameworkCore;
 using Octokit.Bot;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.Configure<GitHubOption>(builder.Configuration.GetSection("GitHubApp"));
+builder.Services.Configure<GitHubOption>(builder.Configuration.GetSection("GitHubOption"));
 builder.Services.Configure<DiscordSocketConfig>(builder.Configuration);
 
 // Add services to the container.
@@ -16,8 +17,10 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddPooledDbContextFactory<IssuesSynchronizerDbContext>(optionsBuilder => 
     optionsBuilder.UseNpgsql(builder.Configuration.GetConnectionString("Main")));
 builder.Services.AddSingleton<DiscordShardedClient>();
+
 builder.Services.AddHostedService<DiscordClientBackgroundService>();
 builder.Services.AddHostedService<DiscordClientReliabilityBackgroundService>();
+builder.Services.AddHostedService<GitHubClientBackgroundService>();
 
 var app = builder.Build();
 
