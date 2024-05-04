@@ -6,17 +6,16 @@ services:
       dockerfile: IssuesSynchronizer/Dockerfile
     environment:
       ConnectionStrings__Main: "Server=postgres;Port=5432;Database=IssuesSynchronizer;User Id=postgres;Password=localpassword;"
-      GitHubApi__WebHookSecret: "PASTE VALUE HERE"
-      GitHubApi__AppIdentifier: "PASTE VALUE HERE"
-      GitHubApi__PrivateKey: "PASTE VALUE HERE"
-      GitHubApi__AppName: "PASTE VALUE HERE"
-      DiscordBotToken: "PASTE VALUE HERE"
+      USER_SECRETS_ID: 836b9b8b-fd89-4aff-9286-809bda60998f
     ports:
       - "8080:8080"
     depends_on:
-      - "postgres"
+      - postgres
     networks:
       - issuessynchronizer-network
+    volumes:
+      - $APPDATA/Microsoft/UserSecrets/$USER_SECRETS_ID:/root/.microsoft/usersecrets/$USER_SECRETS_ID
+      - $HOME/.microsoft/usersecrets/$USER_SECRETS_ID:/root/.microsoft/usersecrets/$USER_SECRETS_ID
   
   postgres:
     image: postgres:latest
