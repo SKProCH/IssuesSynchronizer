@@ -1,8 +1,13 @@
+using Discord.WebSocket;
+using IssuesSynchronizer.Discord;
 using IssuesSynchronizer.Postgres;
 using Microsoft.EntityFrameworkCore;
 using Octokit.Bot;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.Configure<GitHubOption>(builder.Configuration.GetSection("GitHubApp"));
+builder.Services.Configure<DiscordSocketConfig>(builder.Configuration);
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -10,8 +15,9 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddPooledDbContextFactory<IssuesSynchronizerDbContext>(optionsBuilder => 
     optionsBuilder.UseNpgsql(builder.Configuration.GetConnectionString("Main")));
-
-builder.Services.Configure<GitHubOption>(builder.Configuration.GetSection("GitHubApp"));
+builder.Services.AddSingleton<DiscordShardedClient>();
+builder.Services.AddHostedService<DiscordClientBackgroundService>();
+builder.Services.AddHostedService<DiscordClientReliabilityBackgroundService>();
 
 var app = builder.Build();
 
