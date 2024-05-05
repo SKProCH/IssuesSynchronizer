@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace IssuesSynchronizer.Postgres;
 
-public class IssuesSynchronizerDbContext(DbContextOptions options) : DbContext(options)
+public class IssuesSynchronizerDbContext(DbContextOptions<IssuesSynchronizerDbContext> options) : DbContext(options)
 {
     public DbSet<RepositoryChannelLinkEntity> RepositoryChannelLinkEntities { get; init; }
     public DbSet<IssueThreadEntity> IssueThreadEntities { get; init; }

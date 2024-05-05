@@ -1,3 +1,4 @@
+using IssuesSynchronizer.GitHub.Handlers;
 using Octokit.Bot;
 
 namespace IssuesSynchronizer.GitHub.Infrastructure;
@@ -22,6 +23,13 @@ public class ScopedWebHookHandlerRegistry
     {
         _serviceCollection.AddScoped<THookHandler>();
         _hookHandlerRegistry.RegisterHandler<THookHandler>(eventName);
+        return this;
+    }
+    
+    public ScopedWebHookHandlerRegistry RegisterHandler<THookHandler>() where THookHandler : class, IHookHandler, IGitHubEventName
+    {
+        _serviceCollection.AddScoped<THookHandler>();
+        _hookHandlerRegistry.RegisterHandler<THookHandler>(THookHandler.EventName);
         return this;
     }
 }

@@ -10,4 +10,6 @@ public class IssueCommentEntity
     public int? GitHubUserId { get; set; }
     public long? DiscordUserId { get; set; }
     public string Message { get; set; }
+    public ulong DiscordMessageId { get; set; }
+    public int GitHubCommentId { get; set; }
 }
