@@ -1,4 +1,5 @@
 using Discord.WebSocket;
+using IssuesSynchronizer;
 using IssuesSynchronizer.Discord;
 using IssuesSynchronizer.GitHub;
 using IssuesSynchronizer.GitHub.Handlers;
@@ -6,13 +7,14 @@ using IssuesSynchronizer.GitHub.Infrastructure;
 using IssuesSynchronizer.GitHub.Senders;
 using IssuesSynchronizer.Postgres;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Octokit;
 using Octokit.Bot;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.Configure<GitHubOption>(builder.Configuration.GetSection("GitHubOption"));
-builder.Services.Configure<DiscordSocketConfig>(builder.Configuration);
+builder.Services.ConfigureFromSection<GitHubOption>(builder.Configuration);
+builder.Services.ConfigureFromSection<DiscordSocketConfig>(builder.Configuration);
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
