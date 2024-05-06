@@ -3,11 +3,10 @@ using Octokit.Bot;
 
 namespace IssuesSynchronizer.GitHub.Handlers;
 
-public class GitHubIssueHandler(GitHubToDiscordSenderService _gitHubToDiscordSenderService)
+public class GitHubIssueCommentHandler(GitHubToDiscordSenderService _gitHubToDiscordSenderService)
     : IGitHubEventName, IHookHandler
 {
-    private static readonly string[] IgnoredEvents = ["labeled", "unlabeled", "transferred", "deleted"];
-    public static string EventName => "issues";
+    public static string EventName => "issue_comment";
 
     public async Task Handle(EventContext eventContext)
     {
@@ -17,20 +16,17 @@ public class GitHubIssueHandler(GitHubToDiscordSenderService _gitHubToDiscordSen
         }
 
         var payload = eventContext.WebHookEvent.JsonPayload;
-        var action = payload["action"]!.GetValue<string>();
-        if (IgnoredEvents.Contains(action))
-        {
-            return;
-        }
 
         var repositoryId = payload["repository"]!["id"]!.GetValue<long>();
         var issueId = payload["issue"]!["number"]!.GetValue<int>();
+        var commentId = payload["comment"]!["id"]!.GetValue<int>();
+        var senderType = payload["sender"]!["type"]!.GetValue<string>();
         var (hasLinkedForum, hasLinkedThread) = await _gitHubToDiscordSenderService.HasDiscordLinkedChannelAndThread(repositoryId, issueId);
-        if (!hasLinkedForum || (action != "create" && !hasLinkedThread))
+        if (!hasLinkedForum || !hasLinkedThread || senderType != "User")
         {
             return;
         }
 
-        _gitHubToDiscordSenderService.EnqueueUpdate(repositoryId, issueId, null);
+        _gitHubToDiscordSenderService.EnqueueUpdate(repositoryId, issueId, commentId);
     }
 }

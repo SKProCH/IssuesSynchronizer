@@ -32,7 +32,11 @@ builder.Services.AddHostedService<DiscordClientBackgroundService>();
 builder.Services.AddHostedService<DiscordClientReliabilityBackgroundService>();
 builder.Services.AddHostedService<GitHubClientBackgroundService>();
 
-builder.Services.AddScopedGitHubWebHookHandlers(registry => registry.RegisterHandler<GitHubIssueHandler>());
+builder.Services.AddScopedGitHubWebHookHandlers(registry =>
+{
+    registry.RegisterHandler<GitHubIssueHandler>();
+    registry.RegisterHandler<GitHubIssueCommentHandler>();
+});
 
 var app = builder.Build();
 
