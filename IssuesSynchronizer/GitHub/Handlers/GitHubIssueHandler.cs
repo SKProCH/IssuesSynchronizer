@@ -30,7 +30,7 @@ public class GitHubIssueHandler(
         var repositoryId = payload["repository"]!["id"]!.GetValue<long>();
         var issueId = payload["issue"]!["number"]!.GetValue<int>();
         var (hasLinkedForum, hasLinkedThread) = await _gitHubToDiscordSenderService.HasDiscordLinkedChannelAndThread(repositoryId, issueId);
-        if (!hasLinkedForum)
+        if (!hasLinkedForum || (action != "create" && !hasLinkedThread))
         {
             return;
         }
