@@ -1,13 +1,13 @@
 using System.Collections.Concurrent;
 using Discord.WebSocket;
+using IssuesSynchronizer.GitHub.Infrastructure;
 using IssuesSynchronizer.Postgres;
 using Microsoft.EntityFrameworkCore;
-using Octokit;
 
 namespace IssuesSynchronizer.GitHub.Senders;
 
 public class GitHubToDiscordSenderService(
-    GitHubClient _gitHubClient,
+    GitHubClientProvider _gitHubClientProvider,
     ILoggerFactory _loggerFactory,
     DiscordSocketClient _DiscordSocketClient,
     IDbContextFactory<IssuesSynchronizerDbContext> _dbContextFactory)
@@ -19,7 +19,7 @@ public class GitHubToDiscordSenderService(
         var gitHubIssueToDiscordSenderService = _servicesCache.GetOrAdd((repositoryId, issueNumber), _ =>
         {
             var logger = _loggerFactory.CreateLogger<GitHubIssueToDiscordSenderService>();
-            return new GitHubIssueToDiscordSenderService(_gitHubClient, _DiscordSocketClient, _dbContextFactory,
+            return new GitHubIssueToDiscordSenderService(_gitHubClientProvider, _DiscordSocketClient, _dbContextFactory,
                 repositoryId, issueNumber, logger);
         });
 

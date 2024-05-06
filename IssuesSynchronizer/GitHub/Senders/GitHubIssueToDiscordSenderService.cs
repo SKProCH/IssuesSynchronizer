@@ -5,6 +5,7 @@ using Discord;
 using Discord.Rest;
 using Discord.WebSocket;
 using IssuesSynchronizer.Discord;
+using IssuesSynchronizer.GitHub.Infrastructure;
 using IssuesSynchronizer.Postgres;
 using IssuesSynchronizer.Postgres.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -17,20 +18,20 @@ public class GitHubIssueToDiscordSenderService
     private readonly Subject<int?> _bufferSubject = new();
     private static readonly TimeSpan ThrottleDelay = new(0, 0, 30);
 
-    private readonly GitHubClient _gitHubClient;
-    private readonly DiscordSocketClient _DiscordSocketClient;
+    private readonly GitHubClientProvider _gitHubClientProvider;
+    private readonly DiscordSocketClient _discordSocketClient;
     private readonly IDbContextFactory<IssuesSynchronizerDbContext> _dbContextFactory;
     private readonly long _repositoryId;
     private readonly int _issueNumber;
     private readonly ILogger<GitHubIssueToDiscordSenderService> _logger;
 
-    public GitHubIssueToDiscordSenderService(GitHubClient gitHubClient,
-        DiscordSocketClient DiscordSocketClient, IDbContextFactory<IssuesSynchronizerDbContext> dbContextFactory,
+    public GitHubIssueToDiscordSenderService(GitHubClientProvider gitHubClientProvider,
+        DiscordSocketClient discordSocketClient, IDbContextFactory<IssuesSynchronizerDbContext> dbContextFactory,
         long repositoryId, int issueNumber,
         ILogger<GitHubIssueToDiscordSenderService> logger)
     {
-        _gitHubClient = gitHubClient;
-        _DiscordSocketClient = DiscordSocketClient;
+        _gitHubClientProvider = gitHubClientProvider;
+        _discordSocketClient = discordSocketClient;
         _dbContextFactory = dbContextFactory;
         _repositoryId = repositoryId;
         _issueNumber = issueNumber;
@@ -73,13 +74,21 @@ public class GitHubIssueToDiscordSenderService
                 entity.IssueThreadEntities.Where(threadEntity => threadEntity.IssueNumber == _issueNumber))
             .Where(entity => entity.RepositoryId == _repositoryId)
             .FirstAsync();
+        
+        var gitHubClient = await _gitHubClientProvider.CreateInstallationClientForRepo(_repositoryId);
+        if (gitHubClient is null)
+        {
+            dbContext.RepositoryChannelLinkEntities.Remove(repositoryChannelLinkEntity);
+            await dbContext.SaveChangesAsync();
+            return;
+        }
 
-        var guild = await _DiscordSocketClient.Rest.GetGuildAsync(repositoryChannelLinkEntity.GuildId);
+        var guild = await _discordSocketClient.Rest.GetGuildAsync(repositoryChannelLinkEntity.GuildId);
         var forumChannel = await guild.GetForumChannelAsync(repositoryChannelLinkEntity.ChannelId);
 
         if (commentsList.Contains(null))
         {
-            await ProcessIssueUpdate(repositoryChannelLinkEntity, guild, forumChannel);
+            await ProcessIssueUpdate(gitHubClient, repositoryChannelLinkEntity, guild, forumChannel);
         }
 
         var commentsToUpdate = commentsList.Where(i => i is not null)
@@ -87,15 +96,17 @@ public class GitHubIssueToDiscordSenderService
             .ToImmutableArray();
         if (commentsToUpdate.Length > 0)
         {
-            await ProcessCommentsUpdate(commentsToUpdate, dbContext, repositoryChannelLinkEntity, guild, forumChannel);
+            await ProcessCommentsUpdate(gitHubClient, commentsToUpdate, dbContext, repositoryChannelLinkEntity, guild);
         }
 
         await dbContext.SaveChangesAsync();
     }
 
-    private async Task ProcessIssueUpdate(RepositoryChannelLinkEntity repositoryChannelLinkEntity, IGuild guild, RestForumChannel forumChannel)
+    private async Task ProcessIssueUpdate(GitHubClient gitHubClient,
+        RepositoryChannelLinkEntity repositoryChannelLinkEntity, IGuild guild, RestForumChannel forumChannel)
     {
-        var issue = await _gitHubClient.Issue.Get(_repositoryId, _issueNumber);
+        var repository = await gitHubClient.Repository.Get(_repositoryId);
+        var issue = await gitHubClient.Issue.Get(_repositoryId, _issueNumber);
 
         // Forum thread does not exist, creating
         if (repositoryChannelLinkEntity.IssueThreadEntities.Count == 0)
@@ -104,7 +115,7 @@ public class GitHubIssueToDiscordSenderService
                 text: issue.Body, allowedMentions: AllowedMentions.None, options: DiscordUtils.DefaultRequestOptions);
 
             await threadChannel.SendMessageAsync(
-                $"Linked to [{issue.Repository.FullName}#{issue.Number}]({issue.Url})");
+                $"Linked to [{repository.FullName}#{issue.Number}]({issue.Url})");
 
             var firstMessages = await threadChannel.GetMessagesAsync(2, options: DiscordUtils.DefaultRequestOptions)
                 .Pipe(enumerable => enumerable.FirstAsync())
@@ -117,7 +128,7 @@ public class GitHubIssueToDiscordSenderService
             }
 
             var threadLink = $"https://discord.com/channels/{forumChannel.Id}/{threadChannel.Id}";
-            var githubInfoMessage = await _gitHubClient.Issue.Comment.Create(_repositoryId, _issueNumber,
+            var githubInfoMessage = await gitHubClient.Issue.Comment.Create(_repositoryId, _issueNumber,
                 $"Linked to Discord #{forumChannel.Name}: [navigate]({threadLink})");
 
             repositoryChannelLinkEntity.IssueThreadEntities.Add(new IssueThreadEntity
@@ -132,7 +143,7 @@ public class GitHubIssueToDiscordSenderService
         else
         {
             var issueThreadEntity = repositoryChannelLinkEntity.IssueThreadEntities.First();
-            var threadChannel = DiscordUtils.CreateFakeThreadChannel(_DiscordSocketClient.Rest, guild,
+            var threadChannel = DiscordUtils.CreateFakeThreadChannel(_discordSocketClient.Rest, guild,
                 issueThreadEntity.ForumThreadId, null);
             await threadChannel.ModifyAsync(properties =>
             {
@@ -142,15 +153,15 @@ public class GitHubIssueToDiscordSenderService
         }
     }
 
-    private async Task ProcessCommentsUpdate(IList<int> commentsList,
+    private async Task ProcessCommentsUpdate(GitHubClient gitHubClient, IList<int> commentsList,
         IssuesSynchronizerDbContext dbContext, RepositoryChannelLinkEntity repositoryChannelLinkEntity,
-        IGuild guild, RestForumChannel forumChannel)
+        IGuild guild)
     {
         var issueThreadEntity = repositoryChannelLinkEntity.IssueThreadEntities.First();
-        var threadChannel = DiscordUtils.CreateFakeThreadChannel(_DiscordSocketClient.Rest, guild,
+        var threadChannel = DiscordUtils.CreateFakeThreadChannel(_discordSocketClient.Rest, guild,
             issueThreadEntity.ForumThreadId, null);
 
-        var issueComments = await _gitHubClient.Issue.Comment.GetAllForIssue(_repositoryId, _issueNumber)
+        var issueComments = await gitHubClient.Issue.Comment.GetAllForIssue(_repositoryId, _issueNumber)
             .PipeAsync(list => list.ToDictionary(comment => comment.Id));
 
         var existingComments = await dbContext.IssueCommentEntities
