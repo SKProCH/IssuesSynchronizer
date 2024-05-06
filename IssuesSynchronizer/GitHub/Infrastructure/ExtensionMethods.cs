@@ -10,12 +10,13 @@ public static class ExtensionMethods
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(register);
+        var scopedWebHookHandlerRegistry = new ScopedWebHookHandlerRegistry(services);
+        register(scopedWebHookHandlerRegistry);
         
         services.AddScoped(serviceProvider =>
         {
             var hookHandlerRegistry = new WebHookHandlerRegistry(serviceProvider);
-            var scopedWebHookHandlerRegistry = new ScopedWebHookHandlerRegistry(services, hookHandlerRegistry);
-            register(scopedWebHookHandlerRegistry);
+            scopedWebHookHandlerRegistry.ApplyToWebHookHandlerRegistry(hookHandlerRegistry);
             return hookHandlerRegistry;
         });
         services.AddHttpContextAccessor();

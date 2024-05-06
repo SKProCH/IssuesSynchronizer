@@ -1,10 +1,8 @@
 using System.Collections.Concurrent;
-using System.Runtime.CompilerServices;
 using Discord.WebSocket;
 using IssuesSynchronizer.Postgres;
 using Microsoft.EntityFrameworkCore;
 using Octokit;
-using Octokit.Bot;
 
 namespace IssuesSynchronizer.GitHub.Senders;
 

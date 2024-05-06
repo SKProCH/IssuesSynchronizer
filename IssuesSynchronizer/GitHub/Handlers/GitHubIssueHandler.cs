@@ -20,15 +20,15 @@ public class GitHubIssueHandler(
             return;
         }
 
-        var payload = eventContext.WebHookEvent.GetPayload();
-        var action = payload.action as string;
+        var payload = eventContext.WebHookEvent.JsonPayload;
+        var action = payload["action"]!.GetValue<string>();
         if (IgnoredEvents.Contains(action))
         {
             return;
         }
 
-        var repositoryId = (long)payload.repository.id;
-        var issueId = (int)payload.issue.number;
+        var repositoryId = payload["repository"]!["id"]!.GetValue<long>();
+        var issueId = payload["issue"]!["number"]!.GetValue<int>();
         var (hasLinkedForum, hasLinkedThread) = await _gitHubToDiscordSenderService.HasDiscordLinkedChannelAndThread(repositoryId, issueId);
         if (!hasLinkedForum)
         {

@@ -79,7 +79,7 @@ public class GitHubIssueToDiscordSenderService
 
         if (commentsList.Contains(null))
         {
-            await ProcessIssueUpdate(dbContext, repositoryChannelLinkEntity, guild, forumChannel);
+            await ProcessIssueUpdate(repositoryChannelLinkEntity, guild, forumChannel);
         }
 
         var commentsToUpdate = commentsList.Where(i => i is not null)
@@ -93,8 +93,7 @@ public class GitHubIssueToDiscordSenderService
         await dbContext.SaveChangesAsync();
     }
 
-    private async Task ProcessIssueUpdate(IssuesSynchronizerDbContext dbContext,
-        RepositoryChannelLinkEntity repositoryChannelLinkEntity, IGuild guild, RestForumChannel forumChannel)
+    private async Task ProcessIssueUpdate(RepositoryChannelLinkEntity repositoryChannelLinkEntity, IGuild guild, RestForumChannel forumChannel)
     {
         var issue = await _gitHubClient.Issue.Get(_repositoryId, _issueNumber);
 

@@ -1,12 +1,10 @@
 using Discord;
-using Discord.Commands;
 using Discord.Interactions;
 using IssuesSynchronizer.GitHub;
 using IssuesSynchronizer.GitHub.Infrastructure;
 using IssuesSynchronizer.Postgres;
 using IssuesSynchronizer.Postgres.Entities;
 using Microsoft.EntityFrameworkCore;
-using Octokit;
 
 namespace IssuesSynchronizer.Discord.CommandModules;
 
