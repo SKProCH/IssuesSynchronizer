@@ -11,7 +11,7 @@ namespace IssuesSynchronizer.GitHub.Senders;
 public class GitHubToDiscordSenderService(
     GitHubClient _gitHubClient,
     ILoggerFactory _loggerFactory,
-    DiscordShardedClient _discordShardedClient,
+    DiscordSocketClient _DiscordSocketClient,
     IDbContextFactory<IssuesSynchronizerDbContext> _dbContextFactory)
 {
     private ConcurrentDictionary<(long, int), GitHubIssueToDiscordSenderService> _servicesCache = new();
@@ -21,7 +21,7 @@ public class GitHubToDiscordSenderService(
         var gitHubIssueToDiscordSenderService = _servicesCache.GetOrAdd((repositoryId, issueNumber), _ =>
         {
             var logger = _loggerFactory.CreateLogger<GitHubIssueToDiscordSenderService>();
-            return new GitHubIssueToDiscordSenderService(_gitHubClient, _discordShardedClient, _dbContextFactory,
+            return new GitHubIssueToDiscordSenderService(_gitHubClient, _DiscordSocketClient, _dbContextFactory,
                 repositoryId, issueNumber, logger);
         });
 

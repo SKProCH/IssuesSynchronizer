@@ -22,9 +22,10 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddPooledDbContextFactory<IssuesSynchronizerDbContext>(optionsBuilder =>
     optionsBuilder.UseNpgsql(builder.Configuration.GetConnectionString("Main")));
-builder.Services.AddSingleton<DiscordShardedClient>();
+builder.Services.AddSingleton<DiscordSocketClient>();
 builder.Services.AddSingleton<GitHubClient>(provider =>
-    GitHubClientFactory.CreateGitHubAppClient(provider.GetService<GitHubOption>()));
+    GitHubClientFactory.CreateGitHubAppClient(provider.GetService<IOptions<GitHubOption>>()!.Value));
+builder.Services.AddSingleton<GitHubClientProvider>();
 builder.Services.AddSingleton<GitHubToDiscordSenderService>();
 
 builder.Services.AddHostedService<DiscordClientBackgroundService>();

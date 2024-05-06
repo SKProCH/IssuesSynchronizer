@@ -11,5 +11,5 @@ public static class ExtensionMethods
 
     public static IServiceCollection ConfigureFromSection<TOptions>(this IServiceCollection serviceCollection, IConfiguration configuration) 
         where TOptions : class 
-        => serviceCollection.Configure<TOptions>(configuration.GetSection(nameof(TOptions)));
+        => serviceCollection.Configure<TOptions>(configuration.GetSection(typeof(TOptions).Name));
 }

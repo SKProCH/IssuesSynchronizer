@@ -18,19 +18,19 @@ public class GitHubIssueToDiscordSenderService
     private static readonly TimeSpan ThrottleDelay = new(0, 0, 30);
 
     private readonly GitHubClient _gitHubClient;
-    private readonly DiscordShardedClient _discordShardedClient;
+    private readonly DiscordSocketClient _DiscordSocketClient;
     private readonly IDbContextFactory<IssuesSynchronizerDbContext> _dbContextFactory;
     private readonly long _repositoryId;
     private readonly int _issueNumber;
     private readonly ILogger<GitHubIssueToDiscordSenderService> _logger;
 
     public GitHubIssueToDiscordSenderService(GitHubClient gitHubClient,
-        DiscordShardedClient discordShardedClient, IDbContextFactory<IssuesSynchronizerDbContext> dbContextFactory,
+        DiscordSocketClient DiscordSocketClient, IDbContextFactory<IssuesSynchronizerDbContext> dbContextFactory,
         long repositoryId, int issueNumber,
         ILogger<GitHubIssueToDiscordSenderService> logger)
     {
         _gitHubClient = gitHubClient;
-        _discordShardedClient = discordShardedClient;
+        _DiscordSocketClient = DiscordSocketClient;
         _dbContextFactory = dbContextFactory;
         _repositoryId = repositoryId;
         _issueNumber = issueNumber;
@@ -74,7 +74,7 @@ public class GitHubIssueToDiscordSenderService
             .Where(entity => entity.RepositoryId == _repositoryId)
             .FirstAsync();
 
-        var guild = await _discordShardedClient.Rest.GetGuildAsync(repositoryChannelLinkEntity.GuildId);
+        var guild = await _DiscordSocketClient.Rest.GetGuildAsync(repositoryChannelLinkEntity.GuildId);
         var forumChannel = await guild.GetForumChannelAsync(repositoryChannelLinkEntity.ChannelId);
 
         if (commentsList.Contains(null))
@@ -133,7 +133,7 @@ public class GitHubIssueToDiscordSenderService
         else
         {
             var issueThreadEntity = repositoryChannelLinkEntity.IssueThreadEntities.First();
-            var threadChannel = DiscordUtils.CreateFakeThreadChannel(_discordShardedClient.Rest, guild,
+            var threadChannel = DiscordUtils.CreateFakeThreadChannel(_DiscordSocketClient.Rest, guild,
                 issueThreadEntity.ForumThreadId, null);
             await threadChannel.ModifyAsync(properties =>
             {
@@ -148,7 +148,7 @@ public class GitHubIssueToDiscordSenderService
         IGuild guild, RestForumChannel forumChannel)
     {
         var issueThreadEntity = repositoryChannelLinkEntity.IssueThreadEntities.First();
-        var threadChannel = DiscordUtils.CreateFakeThreadChannel(_discordShardedClient.Rest, guild,
+        var threadChannel = DiscordUtils.CreateFakeThreadChannel(_DiscordSocketClient.Rest, guild,
             issueThreadEntity.ForumThreadId, null);
 
         var issueComments = await _gitHubClient.Issue.Comment.GetAllForIssue(_repositoryId, _issueNumber)
