@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using GitHubJwt;
@@ -39,9 +38,9 @@ public static class GitHubClientFactory
 
     private static GitHubClient GetAppClient(GitHubOption option, string appName)
     {
-        var generator = new GitHubJwt.GitHubJwtFactory(
+        var generator = new GitHubJwtFactory(
             new ClearTextPrivateKeySource(option.PrivateKey),
-            new GitHubJwt.GitHubJwtFactoryOptions
+            new GitHubJwtFactoryOptions
             {
                 AppIntegrationId = option.AppIdentifier, // The GitHub App Id
                 ExpirationSeconds = 600 // 10 minutes is the maximum time allowed
@@ -59,19 +58,6 @@ public static class GitHubClientFactory
             new InMemoryCredentialStore(new Credentials(jwtToken, AuthenticationType.Bearer)));
     }
 
-    private static Dictionary<string, object> GetPayload(GitHubOption option)
-    {
-        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-
-        var payload = new Dictionary<string, object>
-        {
-            { "iat", now },
-            { "exp", now + 550 },
-            { "iss", option.AppIdentifier }
-        };
-        return payload;
-    }
-    
     public class ClearTextPrivateKeySource : IPrivateKeySource
     {
         protected readonly string Key;
