@@ -5,6 +5,7 @@ using IssuesSynchronizer.GitHub.Infrastructure;
 using IssuesSynchronizer.Postgres;
 using IssuesSynchronizer.Postgres.Entities;
 using Microsoft.EntityFrameworkCore;
+using Octokit;
 
 namespace IssuesSynchronizer.Discord.CommandModules;
 
@@ -18,11 +19,11 @@ public class LinkRepositoryCommandModule(GitHubClientProvider _gitHubClientProvi
             await RespondAsync("Can't parse repo url");
             return;
         }
-        var repoInstallation = await _gitHubClientProvider.App.GitHubApps.GetRepositoryInstallationForCurrent(owner, repo);
+        
+        var repoInstallation = await GetRepository(owner, repo);
         if (repoInstallation is null)
         {
             await RespondAsync("Install an app for your repo using https://github.com/apps/issues-synchronizer/installations/new");
-            return;
         }
 
         await DeferAsync();
@@ -37,5 +38,18 @@ public class LinkRepositoryCommandModule(GitHubClientProvider _gitHubClientProvi
             { ChannelId = forumChannel.Id, GuildId = forumChannel.GuildId, RepositoryId = repository.Id });
 
         await dbContext.SaveChangesAsync();
+    }
+
+    private async Task<Installation?> GetRepository(string owner, string repo)
+    {
+        try
+        {
+            return await _gitHubClientProvider.App.GitHubApps.GetRepositoryInstallationForCurrent(owner, repo);
+        }
+        catch (Exception)
+        {
+            // ignored
+            return null;
+        }
     }
 }
